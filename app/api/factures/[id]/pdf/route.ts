@@ -1088,7 +1088,7 @@ export async function GET(
     });
     text(
       page,
-      isDevis ? "BON POUR ACCORD, CACHET ET SIGNATURE" : "CACHET ET SIGNATURE",
+      isDevis ? "CACHET ET SIGNATURE" : "CACHET ET SIGNATURE",
       totalsX + 10,
       y - 13,
       6.5,

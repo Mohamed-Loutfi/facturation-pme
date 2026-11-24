@@ -1,0 +1,3 @@
+# Aucune dépendance Python pour cette application Next.js.
+# Les dépendances JavaScript sont déclarées dans package.json et verrouillées
+# dans package-lock.json. Installez-les avec npm ci.
