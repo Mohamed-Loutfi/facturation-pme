@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Entreprise {
+  id             String   @id @default(uuid()) @db.Uuid
+  raisonSociale  String   @map("raison_sociale")
+  formeJuridique String?  @map("forme_juridique")
+  ice            String   @db.VarChar(15)
+  ifFiscal       String   @map("if_fiscal")
+  rc             String
+  rcVille        String?  @map("rc_ville")
+  tp             String?
+  cnss           String?
+  adresse        String
+  ville          String
+  telephone      String?
+  email          String?
+  capitalSocial  Decimal? @map("capital_social") @db.Decimal(14, 2)
+  logoUrl        String?  @map("logo_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("entreprise")
+}
+
+model Utilisateur {
+  id             String   @id @default(uuid()) @db.Uuid
+  nom            String
+  email          String   @unique
+  motDePasseHash String   @map("mot_de_passe_hash")
+  role           String   @default("admin")
+  actif          Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  facturesCreees Facture[]
+
+  @@map("utilisateur")
+}
+
+model Client {
+  id               String   @id @default(uuid()) @db.Uuid
+  typeClient       String   @default("entreprise") @map("type_client")
+  nomRaisonSociale String   @map("nom_raison_sociale")
+  ice              String?  @db.VarChar(15)
+  ifFiscal         String?  @map("if_fiscal")
+  rc               String?
+  adresse          String?
+  ville            String?
+  telephone        String?
+  email            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  factures Facture[]
+
+  @@index([nomRaisonSociale])
+  @@map("client")
+}
+
+model CompteurFacture {
+  annee         Int    @id
+  dernierNumero Int    @default(0) @map("dernier_numero")
+  prefixe       String @default("FACT")
+
+  @@map("compteur_facture")
+}
+
+model CompteurAvoir {
+  annee         Int    @id
+  dernierNumero Int    @default(0) @map("dernier_numero")
+  prefixe       String @default("AV")
+
+  @@map("compteur_avoir")
+}
+
+model CompteurDevis {
+  annee         Int    @id
+  dernierNumero Int    @default(0) @map("dernier_numero")
+  prefixe       String @default("DEV")
+
+  @@map("compteur_devis")
+}
+
+model Facture {
+  id           String @id @default(uuid()) @db.Uuid
+  typeDocument String @default("facture") @map("type_document")
+  numero       String @unique
+  statut       String @default("brouillon")
+
+  factureReferenceId String? @map("facture_reference_id") @db.Uuid
+  motifAvoir         String? @map("motif_avoir")
+
+  clientId String @map("client_id") @db.Uuid
+
+  clientSnapshot     Json @map("client_snapshot")
+  entrepriseSnapshot Json @map("entreprise_snapshot")
+
+  dateEmission     DateTime? @map("date_emission") @db.Date
+  dateEcheance     DateTime? @map("date_echeance") @db.Date
+  modePaiement     String?   @map("mode_paiement")
+  sousTotalHt      Decimal   @default(0) @map("sous_total_ht") @db.Decimal(14, 2)
+  totalTva         Decimal   @default(0) @map("total_tva") @db.Decimal(14, 2)
+  totalTtc         Decimal   @default(0) @map("total_ttc") @db.Decimal(14, 2)
+  montantEnLettres String?   @map("montant_en_lettres")
+  dateValidite     DateTime? @map("date_validite") @db.Date
+  devisReferenceId String?   @map("devis_reference_id") @db.Uuid
+
+  devisReference Facture?  @relation("DevisReference", fields: [devisReferenceId], references: [id])
+  facturesIssues Facture[] @relation("DevisReference")
+
+  pdfUrl        String? @map("pdf_url")
+  pdfHashSha256 String? @map("pdf_hash_sha256")
+
+  createdBy String?   @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at")
+  emiseAt   DateTime? @map("emise_at")
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  createur Utilisateur? @relation(fields: [createdBy], references: [id])
+
+  factureReference Facture? @relation("AvoirReference", fields: [factureReferenceId], references: [id])
+
+  avoirs Facture[] @relation("AvoirReference")
+
+  lignes LigneFacture[]
+
+  @@index([clientId])
+  @@index([statut])
+  @@index([dateEmission])
+  @@index([typeDocument])
+  @@map("facture")
+}
+
+model LigneFacture {
+  id             String  @id @default(uuid()) @db.Uuid
+  factureId      String  @map("facture_id") @db.Uuid
+  ordre          Int     @default(0)
+  description    String
+  quantite       Decimal @default(1) @db.Decimal(10, 2)
+  prixUnitaireHt Decimal @map("prix_unitaire_ht") @db.Decimal(14, 2)
+  tauxTva        Decimal @default(20) @map("taux_tva") @db.Decimal(4, 2)
+  montantHt      Decimal @map("montant_ht") @db.Decimal(14, 2)
+  montantTva     Decimal @map("montant_tva") @db.Decimal(14, 2)
+  montantTtc     Decimal @map("montant_ttc") @db.Decimal(14, 2)
+
+  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+
+  @@index([factureId])
+  @@map("ligne_facture")
+}
