@@ -28,6 +28,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
               Clients
             </Link>
 
+            <Link href="/articles" className={navLink}>
+              Articles
+            </Link>
+
             <Link href="/entreprise" className={navLink}>
               Entreprise
             </Link>

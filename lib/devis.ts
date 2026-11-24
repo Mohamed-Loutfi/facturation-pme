@@ -2,6 +2,17 @@ import { prisma } from "@/lib/prisma";
 
 export class ValidationError extends Error {}
 
+export function verifierArticleLigne(valeur: unknown, articles: Set<string>) {
+  if (valeur == null) return null;
+  if (typeof valeur !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(valeur)) {
+    throw new ValidationError("Identifiant d’article invalide.");
+  }
+  const id = valeur.toLowerCase();
+  if (articles.has(id)) throw new ValidationError("Cet article est déjà présent dans le document.");
+  articles.add(id);
+  return id;
+}
+
 export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 export const num = (value: unknown): number => {
@@ -13,6 +24,7 @@ export const str = (value: unknown): string =>
   typeof value === "string" ? value.trim() : "";
 
 type LigneInput = {
+  articleId?: unknown;
   description?: unknown;
   quantite?: unknown;
   prixUnitaireHt?: unknown;
@@ -34,6 +46,7 @@ export type NouveauClientInput = {
 /** Recalcule les lignes et les totaux côté serveur (on ne fait jamais confiance au navigateur). */
 export function construireLignes(input: unknown) {
   const source: LigneInput[] = Array.isArray(input) ? input : [];
+  const articles = new Set<string>();
 
   const lignes = source
     .map((l, index) => {
@@ -44,6 +57,7 @@ export function construireLignes(input: unknown) {
       const montantTva = round2((montantHt * tauxTva) / 100);
       return {
         ordre: index + 1,
+        articleId: l.articleId,
         description: str(l.description),
         quantite,
         prixUnitaireHt,
@@ -53,7 +67,8 @@ export function construireLignes(input: unknown) {
         montantTtc: round2(montantHt + montantTva),
       };
     })
-    .filter((l) => l.description && l.quantite > 0);
+    .filter((l) => l.description && l.quantite > 0)
+    .map((ligne) => ({ ...ligne, articleId: verifierArticleLigne(ligne.articleId, articles) }));
 
   if (lignes.length === 0) {
     throw new ValidationError(

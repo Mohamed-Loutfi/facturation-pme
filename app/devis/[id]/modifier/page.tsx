@@ -15,7 +15,7 @@ type DevisApi = {
   dateEmission: string | null;
   dateValidite: string | null;
   modePaiement: string | null;
-  lignes: { description: string; quantite: string | number; prixUnitaireHt: string | number; tauxTva: string | number }[];
+  lignes: { articleId?: string | null; description: string; quantite: string | number; prixUnitaireHt: string | number; tauxTva: string | number }[];
   facturesIssues: { id: string; numero: string }[];
 };
 type Client = { id: string; nomRaisonSociale: string };

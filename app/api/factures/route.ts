@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ValidationError, verifierArticleLigne } from "@/lib/devis";
 
 // GET : récupérer toutes les factures
 export async function GET() {
@@ -196,9 +197,11 @@ export async function POST(request: NextRequest) {
       let totalTva = new Prisma.Decimal(0);
       let totalTtc = new Prisma.Decimal(0);
 
+      const articles = new Set<string>();
       const lignesPreparees = lignes.map(
         (
           ligne: {
+            articleId?: unknown;
             description?: string;
             quantite?: number | string;
             prixUnitaireHt?: number | string;
@@ -237,6 +240,7 @@ export async function POST(request: NextRequest) {
 
           return {
             ordre: index + 1,
+            articleId: verifierArticleLigne(ligne.articleId, articles),
             description: ligne.description,
             quantite,
             prixUnitaireHt,
@@ -302,6 +306,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    }
     console.error("ERREUR POST FACTURE :", error);
 
     return NextResponse.json(

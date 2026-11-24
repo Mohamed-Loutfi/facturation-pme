@@ -4,6 +4,7 @@ import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppShell from "@/app/components/AppShell";
+import SelecteurArticles, { articleDejaPresent, ligneDepuisArticle } from "@/app/components/SelecteurArticles";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
@@ -58,6 +59,7 @@ const MODES_PAIEMENT = [
 ];
 
 const newLigne = () => ({
+  articleId: null as string | null,
   description: "",
   quantite: 1,
   prixUnitaireHt: 0,
@@ -978,6 +980,20 @@ export default function DevisPage() {
                   </button>
                 </div>
 
+                <div className="mb-3">
+                  <SelecteurArticles lignes={lignes} onSelection={(article) => {
+                    setLignes((prev) => {
+                      if (articleDejaPresent(prev, article)) return prev;
+                      const derniere = prev.at(-1);
+                      const ligne = ligneDepuisArticle(article);
+                      if (derniere && !derniere.articleId && !derniere.description.trim() && derniere.quantite === 1 &&
+                          derniere.prixUnitaireHt === 0 && derniere.tauxTva === 20) {
+                        return [...prev.slice(0, -1), ligne];
+                      }
+                      return [...prev, ligne];
+                    });
+                  }} />
+                </div>
                 <div className="overflow-x-auto rounded-xl border border-[#e1e6ec]">
                   <table className="w-full min-w-[680px] text-sm">
                     <thead>

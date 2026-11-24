@@ -22,6 +22,7 @@ type Client = {
 type Ligne = {
   id?: string;
   ordre?: number;
+  articleId?: string | null;
   description: string;
   quantite: number;
   prixUnitaireHt: number;

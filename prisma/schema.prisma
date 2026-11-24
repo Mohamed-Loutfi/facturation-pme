@@ -136,9 +136,30 @@ model Facture {
   @@map("facture")
 }
 
+model Article {
+  id             String   @id @default(uuid()) @db.Uuid
+  reference      String   @unique
+  designation    String
+  description    String?
+  photo          Bytes?
+  photoType      String?  @map("photo_type")
+  unite          String
+  prixUnitaireHt Decimal  @map("prix_unitaire_ht") @db.Decimal(14, 2)
+  tauxTva        Decimal  @default(20) @map("taux_tva") @db.Decimal(4, 2)
+  actif          Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  lignes         LigneFacture[]
+
+  @@index([designation])
+  @@map("article")
+}
+
 model LigneFacture {
   id             String  @id @default(uuid()) @db.Uuid
   factureId      String  @map("facture_id") @db.Uuid
+  articleId      String? @map("article_id") @db.Uuid
   ordre          Int     @default(0)
   description    String
   quantite       Decimal @default(1) @db.Decimal(10, 2)
@@ -149,7 +170,9 @@ model LigneFacture {
   montantTtc     Decimal @map("montant_ttc") @db.Decimal(14, 2)
 
   facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  article Article? @relation(fields: [articleId], references: [id])
 
+  @@unique([factureId, articleId])
   @@index([factureId])
   @@map("ligne_facture")
 }

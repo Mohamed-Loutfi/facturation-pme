@@ -67,6 +67,7 @@ export async function POST(
             create: devis.lignes.map((l, index) => ({
               ordre: l.ordre ?? index + 1,
               description: l.description,
+              articleId: l.articleId,
               quantite: l.quantite,
               prixUnitaireHt: l.prixUnitaireHt,
               tauxTva: l.tauxTva,

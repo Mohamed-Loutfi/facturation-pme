@@ -1,8 +1,10 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import SelecteurArticles, { articleDejaPresent, ligneDepuisArticle } from "./SelecteurArticles";
 
 export type LigneSaisie = {
+  articleId?: string | null;
   mode: "simple" | "mesures";
   description: string;
   quantite: number;
@@ -40,25 +42,27 @@ const formatPrix = (n: number) => new Intl.NumberFormat("fr-FR", { minimumFracti
 
 export function lignePourApi(ligne: LigneSaisie) {
   if (ligne.mode === "simple") {
-    return { description: ligne.description.trim(), quantite: Number(ligne.quantite), prixUnitaireHt: Number(ligne.prixUnitaireHt), tauxTva: Number(ligne.tauxTva) };
+    return { articleId: ligne.articleId, description: ligne.description.trim(), quantite: Number(ligne.quantite), prixUnitaireHt: Number(ligne.prixUnitaireHt), tauxTva: Number(ligne.tauxTva) };
   }
   const nom = ligne.ouvrage === "Autre" ? ligne.description.trim() : ligne.ouvrage;
   const mesures = ligne.unite === "m2"
     ? `${formatNombre(ligne.largeur)} m × ${formatNombre(ligne.hauteur)} m`
     : `${formatNombre(ligne.largeur)} m linéaires`;
   const description = `${nom}${ligne.description.trim() && ligne.ouvrage !== "Autre" ? ` — ${ligne.description.trim()}` : ""} | ${mesures} | ${formatNombre(ligne.nombre)} élément(s) | ${formatNombre(quantiteCalculee(ligne))} ${ligne.unite === "m2" ? "m²" : "ml"} à ${formatPrix(ligne.prixUnitaireHt)} MAD/${ligne.unite === "m2" ? "m²" : "ml"}`;
-  return { description, quantite: quantiteCalculee(ligne), prixUnitaireHt: Number(ligne.prixUnitaireHt), tauxTva: Number(ligne.tauxTva) };
+  return { articleId: ligne.articleId, description, quantite: quantiteCalculee(ligne), prixUnitaireHt: Number(ligne.prixUnitaireHt), tauxTva: Number(ligne.tauxTva) };
 }
 
 
 /** Reconstruit une ligne de mesures enregistrée dans la description du document. */
 export function ligneDepuisApi(source: {
+  articleId?: string | null;
   description: string;
   quantite: string | number;
   prixUnitaireHt: string | number;
   tauxTva: string | number;
 }): LigneSaisie {
   const base: LigneSaisie = {
+    articleId: source.articleId,
     ...nouvelleLigne(), description: source.description ?? "",
     quantite: Number(source.quantite),
     prixUnitaireHt: Number(source.prixUnitaireHt),
@@ -104,6 +108,18 @@ export default function EditeurLignesMesures({ lignes, setLignes, titre }: Props
         <button type="button" onClick={() => ajouter("simple")} className="rounded-lg border border-[#456f9f] px-3 py-2 text-sm font-semibold text-[#456f9f] hover:bg-[#edf3f8]">+ Ligne simple</button>
         <button type="button" onClick={() => ajouter("mesures")} className="rounded-lg bg-[#456f9f] px-3 py-2 text-sm font-semibold text-white hover:bg-[#395f8a]">+ Ligne de mesures</button>
       </div>
+      <SelecteurArticles lignes={lignes} onSelection={(article) => {
+        const ligne = { ...nouvelleLigne(), ...ligneDepuisArticle(article) };
+        setLignes((prev) => {
+          if (articleDejaPresent(prev, article)) return prev;
+          const derniere = prev.at(-1);
+          if (derniere?.mode === "simple" && !derniere.articleId && !derniere.description.trim() &&
+              derniere.quantite === 1 && derniere.prixUnitaireHt === 0 && derniere.tauxTva === 20) {
+            return [...prev.slice(0, -1), ligne];
+          }
+          return [...prev, ligne];
+        });
+      }} />
       {lignes.map((ligne, index) => (
         <div key={index} className="rounded-xl border border-[#e1e6ec] bg-[#fafbfc] p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">

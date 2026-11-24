@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ValidationError, verifierArticleLigne } from "@/lib/devis";
 
 // =====================================================
 // GET : récupérer une facture
@@ -221,9 +222,11 @@ export async function PUT(
     let totalTva = new Prisma.Decimal(0);
     let totalTtc = new Prisma.Decimal(0);
 
+    const articles = new Set<string>();
     const lignesPreparees = lignes.map(
       (
         ligne: {
+          articleId?: unknown;
           description?: string;
           quantite?: number | string;
           prixUnitaireHt?: number | string;
@@ -291,6 +294,7 @@ export async function PUT(
 
         return {
           ordre: index + 1,
+          articleId: verifierArticleLigne(ligne.articleId, articles),
           description: ligne.description.trim(),
           quantite,
           prixUnitaireHt,
@@ -360,6 +364,9 @@ export async function PUT(
       facture,
     });
   } catch (error) {
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    }
     console.error("ERREUR PUT FACTURE :", error);
 
     return NextResponse.json(
